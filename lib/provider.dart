@@ -37,7 +37,7 @@ final authProvider = FutureProvider((ref) async {
   final profile = await ApiClient.instance.getAuthStatusDirect();
   final userId = await SharedPreferencesService.instance.fetchUserDirect();
   if (userId == null) {
-    SharedPreferencesService.instance.saveUser(profile.name);
+    SharedPreferencesService.instance.saveUser(profile.username);
   }
   final stats = await ApiClient.instance.getUserStatsDirect(profile.name);
   return AuthInfo(profile.name, profile, stats);

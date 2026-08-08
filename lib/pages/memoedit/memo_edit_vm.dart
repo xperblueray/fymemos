@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:path/path.dart' as p;
 
 import 'package:fymemos/data/services/api/api_client.dart';
 import 'package:fymemos/model/memo_request.dart';
@@ -36,9 +37,11 @@ class MemoEditVM extends Notifier<MemoEditData> {
     state = init();
   }
 
-  Future<MemoResource> _uploadImage(File image) async {
-    final fileName = image.path.split("/").last;
-    final type = "image/${fileName.split(".").last}";
+  Future<MemoResource> _uploadImage(File image, {String? memo}) async {
+    // 使用 path 包的 basename 跨平台获取文件名，Windows 路径使用 \ 分隔符
+    final fileName = p.basename(image.path);
+    // 使用 lookupMimeType 获取准确的 MIME 类型，比手动拼 image/ext 更可靠
+    final type = lookupMimeType(image.path) ?? 'image/png';
     final bytes = await image.readAsBytes();
     final base64Content = base64Encode(bytes);
     return await ApiClient.instance.createResource(
@@ -46,6 +49,7 @@ class MemoEditVM extends Notifier<MemoEditData> {
         filename: fileName,
         content: base64Content,
         type: type,
+        memo: memo,
       ),
     );
   }
@@ -63,8 +67,7 @@ class MemoEditVM extends Notifier<MemoEditData> {
     }
     images.add(MemoImage(file: image));
     state = state.copyWith(image: images);
-    final res = await _uploadImage(image);
-    images.firstWhere((element) => element.file == image).memoResource = res;
+    // 上传统一在 checkImages 中处理，避免竞态条件和重复上传
   }
 
   void deleteImage(MemoImage img) async {
@@ -89,48 +92,61 @@ class MemoEditVM extends Notifier<MemoEditData> {
   }
 
   Future<Result<Memo>> _updateMemo() async {
-    final images = await checkImages();
-    final imageData =
-        images
-            .skipWhile((element) => element.memoResource == null)
-            .map((e) => e.memoResource!)
-            .toList();
     final request = UpdateMemoRequest.copyFromMemo(
       state.memo!,
       content: state.content,
       visibility: state.visibility,
-      resources: imageData,
     );
-    return await ApiClient.instance.updateMemo(state.memoName!, request);
+    final result = await ApiClient.instance.updateMemo(state.memoName!, request);
+    // 编辑场景下，上传新增的图片并重新获取笔记以包含资源
+    if (result is Ok<Memo>) {
+      await _uploadPendingImages(result.value.name);
+      return await _refetchOrOriginal(result);
+    }
+    return result;
   }
 
   Future<Result<Memo>> _createMemo() async {
-    final images = await checkImages();
-    final imageData =
-        images
-            .skipWhile((element) => element.memoResource == null)
-            .map((e) => e.memoResource!)
-            .toList();
+    // 先创建笔记（不含附件 — v0.29 不支持在创建时关联附件）
     final request = CreateMemoRequest(
       state.content,
       state.visibility,
-      imageData,
+      [],
     );
-    return await ApiClient.instance.createMemo(request);
+    final result = await ApiClient.instance.createMemo(request);
+    // 笔记创建成功后，上传图片并关联，然后重新获取完整的笔记数据
+    if (result is Ok<Memo>) {
+      await _uploadPendingImages(result.value.name);
+      return await _refetchOrOriginal(result);
+    }
+    return result;
   }
 
-  Future<List<MemoImage>> checkImages() async {
+  /// 重新获取笔记（含资源），失败时回退到原始结果
+  Future<Result<Memo>> _refetchOrOriginal(Result<Memo> original) async {
+    try {
+      final name = (original as Ok<Memo>).value.name;
+      final memo = await ApiClient.instance.getMemoDirect(name);
+      return Result.ok(memo);
+    } catch (e) {
+      print("重新获取笔记失败，使用原始数据: $e");
+      return original; // 笔记已保存成功，回退到不含资源的原始数据
+    }
+  }
+
+  /// 上传所有待处理的图片，关联到指定笔记
+  Future<void> _uploadPendingImages(String memoName) async {
     final images = state.images ?? [];
     for (final img in images) {
-      if (img.file == null) {
+      if (img.file == null || img.memoResource != null) {
         continue;
       }
-      if (img.memoResource != null) {
-        continue;
+      try {
+        img.memoResource = await _uploadImage(img.file!, memo: memoName);
+      } catch (e) {
+        print("图片上传失败: $e");
       }
-      img.memoResource = await _uploadImage(img.file!);
     }
-    return images;
   }
 }
 

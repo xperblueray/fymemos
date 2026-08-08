@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fymemos/config/init.dart';
 import 'package:fymemos/data/services/api/api_client.dart';
 import 'package:fymemos/data/services/shared_preference_service.dart';
 import 'package:fymemos/generated/l10n.dart';
@@ -65,8 +66,9 @@ class _LoginPageState extends State<LoginPage> with Refena {
 
     switch (userResult) {
       case Ok():
+        loginNotifier.value = true;
         context.rebuild(authProvider);
-        prefs.saveUser(userResult.value.name);
+        prefs.saveUser(userResult.value.username);
         context.redux(userMemoProvider).dispatch(RefreshMemoAction());
         context.pushReplacement('/');
         break;
@@ -115,8 +117,9 @@ class _LoginPageState extends State<LoginPage> with Refena {
     final prefs = SharedPreferencesService.instance;
     await prefs.saveBaseUrl(baseUrl);
     await prefs.saveToken(user.token);
-    await prefs.saveUser(user.name);
+    await prefs.saveUser(user.username);
     ApiClient.instance.initDio(baseUrl: baseUrl, token: user.token!);
+    loginNotifier.value = true;
     context.rebuild(authProvider);
     context.redux(userMemoProvider).dispatch(RefreshMemoAction());
     context.pushReplacement('/');

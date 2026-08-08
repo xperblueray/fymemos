@@ -44,7 +44,12 @@ abstract class BaseNode {
   NodeType getType();
 
   static BaseNode fromJson(Map<String, dynamic> json) {
-    NodeType type = NodeExtension.fromString(json['type']);
+    final typeStr = (json['type'] as String?)?.trim() ?? '';
+    if (typeStr.isEmpty) {
+      // v0.29 may return nodes with empty type, fall back to text node
+      return TextNode(json['content'] ?? '');
+    }
+    NodeType type = NodeExtension.fromString(typeStr);
     switch (type) {
       case NodeType.PARAGRAPH:
         return Paragraph.fromJson(json['paragraphNode']);

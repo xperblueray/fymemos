@@ -24,7 +24,7 @@ class HeadingParser implements BlockParser {
     if (contentTokens.isEmpty) {
       return (0, null);
     }
-    List<BaseNode>? children = parseInline(tokens);
+    List<BaseNode>? children = parseInline(contentTokens);
     if (children == null) {
       return (0, null);
     }

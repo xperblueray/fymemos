@@ -27,14 +27,20 @@ Future<void> main(List<String> args) async {
 }
 
 final _router = GoRouter(
-  redirect: (context, state) async {
-    try {
-      final authState = await context.future(authProvider);
-    } catch (e) {
+  refreshListenable: loginNotifier,
+  redirect: (context, state) {
+    final loggedIn = loginNotifier.value;
+    final currentPath = state.matchedLocation;
+    // Not yet checked (shouldn't happen since preinit runs first)
+    if (loggedIn == null) return null;
+    // Not logged in → redirect to login page (unless already there)
+    if (!loggedIn && currentPath != '/login') {
       return '/login';
     }
-    print("redirect: ${state.fullPath} ${state.uri}");
-
+    // Logged in and on login page → redirect to home
+    if (loggedIn && currentPath == '/login') {
+      return '/';
+    }
     return null;
   },
   routes: [

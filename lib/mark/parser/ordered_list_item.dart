@@ -32,9 +32,11 @@ class OrderedListItemParser implements BlockParser {
     if (children == null) {
       return (0, null);
     }
+    // Extract the number string (e.g., "1" from "1. ")
+    final numberStr = matchedTokens[indent].value;
     return (
       indent + contentTokens.length + 3,
-      OrderedListItem(children, number, indent: indent),
+      OrderedListItem(children, numberStr, indent: indent),
     );
   }
 }

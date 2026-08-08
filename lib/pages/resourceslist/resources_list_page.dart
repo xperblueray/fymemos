@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:fymemos/model/resources.dart';
 import 'package:fymemos/pages/resourceslist/resource_vm.dart';
+import 'package:fymemos/pages/common_page.dart';
 import 'package:fymemos/utils/load_state.dart';
 import 'package:fymemos/widgets/memo.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -37,6 +38,10 @@ class ResourcesListPage extends StatelessWidget {
       count = (screenWidth - 300) ~/ 150;
     }
     return buildAsyncDataPage(result, (item) {
+      // 处理空列表状态，显示空页面提示
+      if (item.isEmpty) {
+        return EmptyPage();
+      }
       return MasonryGridView.count(
         crossAxisCount: count,
         crossAxisSpacing: 4,

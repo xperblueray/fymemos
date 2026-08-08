@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fymemos/config/init.dart';
 import 'package:fymemos/generated/l10n.dart';
 import 'package:fymemos/pages/settings/settings_controller.dart';
 import 'package:fymemos/ui/core/theme/color_mode.dart';
@@ -141,6 +142,7 @@ class SettingsPage extends StatelessWidget {
             onTap: () async {
               final prefs = await SharedPreferences.getInstance();
               await prefs.clear();
+              loginNotifier.value = false;
               context.pushReplacement('/login');
             },
           ),

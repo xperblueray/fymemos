@@ -165,10 +165,14 @@ class _NodeRenderer extends StatelessWidget {
         return _renderEscapingCharacterNode(node as EscapingCharacter, context);
       case NodeType.REFERENCED_CONTENT:
         return _renderReferencedContentNode(node as ReferencedContent, context);
+      case NodeType.LINE_BREAK:
+        return const TextSpan(text: '\n');
+      case NodeType.BOLD_ITALIC:
+        return _renderBoldItalicNode(node as BoldItalicNode, context);
       default:
         {
           print("unsupport node type: ${node.getType()}");
-          throw Exception('Unknown node type: ${node}');
+          return const TextSpan(text: '');
         }
     }
   }

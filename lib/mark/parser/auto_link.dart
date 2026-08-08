@@ -9,6 +9,9 @@ class AutoLinkParser implements InlineParser {
       return (0, null);
     }
     List<Token> matchedT = tokens.getFirstLine();
+    if (matchedT.isEmpty) {
+      return (0, null);
+    }
     String url = "";
     bool isRawText = true;
     if (matchedT[0].type == lessThan) {

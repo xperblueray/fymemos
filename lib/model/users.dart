@@ -23,12 +23,12 @@ class UserStats {
 
   factory UserStats.fromJson(Map<String, dynamic> json) {
     final List<DateTime> memoTimes =
-        (json['memoDisplayTimestamps'] as List)
+        (json['memoCreatedTimestamps'] as List? ?? json['memoDisplayTimestamps'] as List)
             .map((e) => DateTime.parse(e as String))
             .toList();
     return UserStats(
       name: json['name'] as String,
-      tagCount: json['tagCount'].cast<String, int>(),
+      tagCount: json['tagCount'] != null ? (json['tagCount'] as Map).cast<String, int>() : <String, int>{},
       memoTimes: memoTimes,
     );
   }
@@ -39,7 +39,7 @@ class UserProfile {
   final String username;
   final String nickname;
   final String role;
-  final String email;
+  final String? email;
   final String? description;
   final String? avatarUrl;
   final String? state;
@@ -52,7 +52,7 @@ class UserProfile {
     required this.username,
     required this.nickname,
     required this.role,
-    required this.email,
+    this.email,
     this.description,
     this.avatarUrl,
     this.state,
@@ -79,7 +79,7 @@ class UserProfile {
       username: username ?? this.username,
       nickname: nickname ?? this.nickname,
       role: role ?? this.role,
-      email: email ?? this.email,
+      email: email ?? this.email ?? '',
       description: description ?? this.description,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       state: state ?? this.state,
@@ -93,9 +93,9 @@ class UserProfile {
     return UserProfile(
       name: json['name'] as String,
       username: json['username'] as String,
-      nickname: json['nickname'] as String,
+      nickname: (json['nickname'] as String?) ?? (json['displayName'] as String?) ?? '',
       role: json['role'] as String,
-      email: json['email'] as String,
+      email: json['email'] as String?,
       description: json['description'] as String?,
       avatarUrl: json['avatarUrl'] as String?,
       state: json['state'] as String?,

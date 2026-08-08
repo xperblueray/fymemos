@@ -6,12 +6,19 @@ class MemoResource {
   final String size;
   final String? memo;
 
+  /// Use the ApiClient's baseUrl for constructing image URLs.
+  static String _serverBaseUrl = '';
+
+  static void setServerBaseUrl(String url) {
+    _serverBaseUrl = url.replaceAll(RegExp(r'/+$'), '');
+  }
+
   String get imageUrl {
-    return "https://memos.isming.info/file/$name/$filename";
+    return "$_serverBaseUrl/file/$name/$filename";
   }
 
   String get thumbnailUrl {
-    return "https://memos.isming.info/file/$name/$filename?thumbnail=true";
+    return "$_serverBaseUrl/file/$name/$filename?thumbnail=true";
   }
 
   MemoResource({
@@ -29,7 +36,7 @@ class MemoResource {
       createTime: DateTime.parse(json['createTime'] as String),
       filename: json['filename'] as String,
       type: json['type'] as String,
-      size: json['size'] as String,
+      size: json['size']?.toString() ?? '',
       memo: json['memo'] as String?,
     );
   }
@@ -51,10 +58,12 @@ class MemoResourcesResponse {
   MemoResourcesResponse({this.resources});
 
   factory MemoResourcesResponse.fromJson(Map<String, dynamic> json) {
+    // v0.29: the key is 'attachments', older versions used 'resources'
     final List<MemoResource> resources =
-        (json['resources'] as List)
-            .map((e) => MemoResource.fromJson(e as Map<String, dynamic>))
-            .toList();
+        ((json['attachments'] as List?) ?? (json['resources'] as List?))
+                ?.map((e) => MemoResource.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [];
     return MemoResourcesResponse(resources: resources);
   }
 }

@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:fymemos/mark/ast/node.dart';
+import 'package:fymemos/mark/parser/parser.dart';
 import 'package:fymemos/model/resources.dart';
 import 'package:fymemos/utils/l10n.dart';
 import 'package:intl/intl.dart';
@@ -38,21 +40,36 @@ class Memo {
   );
 
   factory Memo.fromJson(Map<String, dynamic> json) {
+    // v0.29 returns "attachments" instead of "resources"
+    final resourcesJson = json['attachments'] ?? json['resources'] ?? [];
+    // v0.29 may not include "nodes" (AST), fall back to parsing content
+    List<BaseNode> nodes;
+    if (json['nodes'] != null) {
+      nodes =
+          (json['nodes'] as List<dynamic>)
+              .map((item) => BaseNode.fromJson(item as Map<String, dynamic>))
+              .toList();
+    } else {
+      nodes = parse(json['content'] ?? "") ?? [];
+    }
+    final createTime = DateTime.parse(json['createTime'] ?? DateTime.now().toIso8601String());
+    // v0.29 may not include displayTime; use createTime as fallback
+    final displayTime = json['displayTime'] != null
+        ? DateTime.parse(json['displayTime'] as String)
+        : createTime;
     return Memo(
       json['name'] ?? "",
       json['uid'] ?? "",
       json['creator'] ?? "",
-      DateTime.parse(json['createTime'] ?? DateTime.now().toIso8601String()),
-      DateTime.parse(json['displayTime'] ?? DateTime.now().toIso8601String()),
+      createTime,
+      displayTime,
       json['content'] ?? "",
       MemoVisibility.fromString(json['visibility'] ?? ""),
       json['pinned'] ?? false,
-      (json['resources'] as List<dynamic>)
+      (resourcesJson as List<dynamic>)
           .map((item) => MemoResource.fromJson(item as Map<String, dynamic>))
           .toList(),
-      (json['nodes'] as List<dynamic>)
-          .map((item) => BaseNode.fromJson(item as Map<String, dynamic>))
-          .toList(),
+      nodes,
       json['snippet'] ?? "",
       (json['relations'] as List<dynamic>? ?? [])
           .map((item) => Relation.fromJson(item as Map<String, dynamic>))
@@ -122,8 +139,8 @@ class CreateMemoRequest {
     return {
       'content': content,
       'visibility': visibility.name,
-      if (resource.isNotEmpty)
-        'resources': resource.map((e) => e.toJson()).toList(),
+      // v0.29 的 CreateMemoRequest 不支持 attachments 字段，
+      // 附件先上传到服务端，独立存在于资源列表中
     };
   }
 }

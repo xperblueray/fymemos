@@ -2,8 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:fymemos/data/services/api/api_client.dart';
+import 'package:fymemos/mark/ast/node.dart';
 import 'package:fymemos/model/memos.dart';
 import 'package:fymemos/pages/memoedit/memo_edit_vm.dart';
+import 'package:fymemos/pages/memolist/memo_list_vm.dart';
 import 'package:fymemos/provider.dart';
 import 'package:fymemos/utils/l10n.dart';
 import 'package:fymemos/utils/result.dart';
@@ -359,9 +361,22 @@ class _CreateMemoPageState extends State<CreateMemoPage> with Refena {
     final offset = renderBox?.localToGlobal(Offset.zero) ?? Offset.zero;
     final boxSize = renderBox?.size ?? Size.zero;
 
-    final tags =
-        context.watch(authProvider).data?.stats.tagCount.keys.toList() ?? [];
-    if (tags.isEmpty) {
+    // v0.29: tagCount in stats is empty, collect tags from existing memos
+    final memos = context.watch(userMemoProvider).memos;
+    Set<String> tags = {};
+    for (final memo in memos) {
+      for (final node in memo.nodes) {
+        if (node is Tag) {
+          tags.add(node.tag);
+        }
+      }
+    }
+    // Also collect from local content if editing existing memo
+    final localTags =
+        RegExp(r'#([\w\u4e00-\u9fff\u3000-\u9fff\-]+)').allMatches(context.read(memoEditVMProvider).content).map((m) => m.group(1)!).toSet();
+    tags.addAll(localTags);
+    final sortedTags = tags.toList()..sort();
+    if (sortedTags.isEmpty) {
       return;
     }
 
@@ -370,7 +385,7 @@ class _CreateMemoPageState extends State<CreateMemoPage> with Refena {
       context: context,
       requestFocus: false,
       items:
-          tags
+          sortedTags
               .map(
                 (tag) => PopupMenuItem<String>(
                   value: tag,

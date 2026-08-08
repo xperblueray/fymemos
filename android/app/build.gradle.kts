@@ -1,3 +1,10 @@
+repositories {
+    maven { url = uri("https://maven.aliyun.com/repository/google") }
+    maven { url = uri("https://maven.aliyun.com/repository/public") }
+    google()
+    mavenCentral()
+}
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -8,7 +15,8 @@ plugins {
 android {
     namespace = "com.example.fymemos"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "27.0.12077973"
+    buildToolsVersion = "36.1.0"
+    ndkVersion = "28.2.13676358"
 
     
 
